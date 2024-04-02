@@ -4,7 +4,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import jsend from "jsend";
-import axios from "axios";
+import axios from "axios"
 
 import logger from "../logger";
 import errorHandler from "../middlewares/error-handler";
@@ -41,37 +41,55 @@ app.get("/", (_req, res: express.Response) => {
   res.send("Open Swagger UI at http://localhost:3000/static/index.html");
 });
 
-app.get("/api", (_req, res: express.Response) => {
-  res.setHeader("Content-Type", "application/json");
-  res.json({ name: "Hello world" });
+app.get("/api", async (_req, res: express.Response) => {
+	try {
+		const fileUrl = _req.query.fileUrl?.toString(); // Use optional chaining and toString()
+		const fileName = _req.query.fileName?.toString();
+  
+	  if (!fileUrl || !fileName) {
+		return res.status(400).send("Invalid parameters.");
+	  }
+  
+	  const response = await axios.get(fileUrl, { responseType: "stream" });
+  
+	  if (response.status != 200) {
+		return res.status(response.status).send(`Error downloading file: ${response.statusText}`);
+	  }
+  
+	  res.setHeader("Content-Type", response.headers["content-type"]);
+	  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+  
+	  response.data.pipe(res);
+	} catch (error) {
+	  console.error(error);
+	  res.status(500).send("Error downloading file.");
+	}
 });
 
 app.get("/proxy", async (req, res) => {
-  try {
-    const fileUrl = req.query.fileUrl;
-    const fileName = req.query.fileName;
-
-    if (!fileUrl || !fileName) {
-      return res.status(400).send("Invalid parameters.");
-    }
-
-    const response = await axios.get(fileUrl, { responseType: "stream" });
-
-    if (!response.ok) {
-      return res
-        .status(response.status)
-        .send(`Error downloading file: ${response.statusText}`);
-    }
-
-    res.setHeader("Content-Type", response.headers["content-type"]);
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-
-    response.data.pipe(res);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error downloading file.");
-  }
-});
+	try {
+		const fileUrl = req.query.fileUrl?.toString(); // Use optional chaining and toString()
+		const fileName = req.query.fileName?.toString();
+  
+	  if (!fileUrl || !fileName) {
+		return res.status(400).send("Invalid parameters.");
+	  }
+  
+	  const response = await axios.get(fileUrl, { responseType: "stream" });
+  
+	  if (response.status != 200) {
+		return res.status(response.status).send(`Error downloading file: ${response.statusText}`);
+	  }
+  
+	  res.setHeader("Content-Type", response.headers["content-type"]);
+	  res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+  
+	  response.data.pipe(res);
+	} catch (error) {
+	  console.error(error);
+	  res.status(500).send("Error downloading file.");
+	}
+  });
 
 app.use("/api/todo", todoRoutes);
 
